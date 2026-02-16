@@ -1,0 +1,17 @@
+[project]
+name = "ai-backend"
+version = "0.1.0"
+description = "AI Backend for Co-Browsing Portfolio"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "google-generativeai",
+    "python-dotenv",
+    "pydantic"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

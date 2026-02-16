@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "@/index.css";
 import { Providers } from "./providers";
+import { ChatWidget } from "@/components/ChatWidget";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
@@ -29,7 +30,10 @@ export default function RootLayout({
     return (
         <html lang="en" className="dark" suppressHydrationWarning>
             <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased selection:bg-primary selection:text-primary-foreground`}>
-                <Providers>{children}</Providers>
+                <Providers>
+                    {children}
+                    <ChatWidget />
+                </Providers>
             </body>
         </html>
     );
