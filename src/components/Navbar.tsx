@@ -21,9 +21,8 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-background/90 backdrop-blur-lg border-b border-border" : "bg-transparent"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/90 backdrop-blur-lg border-b border-border" : "bg-transparent"
+        }`}
     >
       <div className="max-w-[1200px] mx-auto flex items-center justify-between px-6 py-4">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="font-heading text-xl font-bold text-foreground">
@@ -41,7 +40,7 @@ const Navbar = () => {
               {l}
             </button>
           ))}
-          <Button size="sm" onClick={() => scrollTo("contact")} className="font-heading font-semibold">
+          <Button id="nav-hire-me" size="sm" onClick={() => scrollTo("contact")} className="font-heading font-semibold">
             Hire Me
           </Button>
         </div>
@@ -60,7 +59,7 @@ const Navbar = () => {
               {l}
             </button>
           ))}
-          <Button size="sm" onClick={() => scrollTo("contact")} className="w-full font-heading font-semibold">
+          <Button id="mobile-nav-hire-me" size="sm" onClick={() => scrollTo("contact")} className="w-full font-heading font-semibold">
             Hire Me
           </Button>
         </div>

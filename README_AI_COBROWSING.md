@@ -47,9 +47,14 @@ graph TD
  Create a `.env` file in `ai-backend` with:
  ```env
  GOOGLE_API_KEY=your_gemini_api_key
- # or
- GEMINI_API_KEY=your_gemini_api_key
+ # Optional: Override model if 1.5-flash is unavailable
+ GEMINI_MODEL=gemini-1.5-flash
  ```
+
+### Troubleshooting
+- **Backend Error: "I encountered an error processing your request"**: Check the backend logs. It usually means the API Key is invalid or the model name is incorrect.
+- **Model 404 Error**: If `gemini-1.5-flash` is not found, try setting `GEMINI_MODEL=gemini-2.0-flash-lite-001` in `.env`.
+
 
  Start the server:
  ```bash

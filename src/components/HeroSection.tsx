@@ -47,7 +47,7 @@ const HeroSection = () => {
   }, [text, deleting, roleIndex]);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Gradient glows */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse-glow" />
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDelay: "1.5s" }} />
@@ -100,6 +100,7 @@ const HeroSection = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
+              id="hero-hire-me"
               size="lg"
               className="font-heading font-semibold text-base px-8"
               onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
@@ -107,6 +108,7 @@ const HeroSection = () => {
               Hire Me
             </Button>
             <Button
+              id="hero-resume"
               size="lg"
               variant="outline"
               className="font-heading font-semibold text-base px-8 border-border hover:border-primary/50"

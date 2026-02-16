@@ -20,7 +20,10 @@ interface MessageState {
     type: 'message' | 'action';
 }
 
+import { useRouter } from 'next/navigation';
+
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
+    const router = useRouter();
     const [messages, setMessages] = useState<MessageState[]>([
         { role: 'model', content: "Hi! I'm your AI co-browsing assistant. Ask me anything about this portfolio or getting around!", type: 'message' }
     ]);
@@ -61,7 +64,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
                 setMessages(prev => [...prev, { role: 'model', content: `Executing action: ${response.action} ${response.target}`, type: 'action' }]);
 
                 // Execute tool
-                const success = executeTool(response);
+                const success = executeTool(response, router);
 
                 // Optionally, the AI could follow up, but for now we just show what happened.
                 if (!success) {

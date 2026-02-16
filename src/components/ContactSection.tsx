@@ -60,12 +60,14 @@ const ContactSection = () => {
           <div className="grid lg:grid-cols-2 gap-12">
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
+                id="contact-name"
                 placeholder="Your Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="bg-secondary border-border focus:border-primary/50"
               />
               <Input
+                id="contact-email"
                 placeholder="Your Email"
                 type="email"
                 value={form.email}
@@ -73,6 +75,7 @@ const ContactSection = () => {
                 className="bg-secondary border-border focus:border-primary/50"
               />
               <Textarea
+                id="contact-message"
                 placeholder="Your Message"
                 rows={5}
                 value={form.message}
