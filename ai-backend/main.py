@@ -31,7 +31,7 @@ except Exception as e:
     print(f"❌ Failed to initialize GeminiAgent: {e}")
     raise
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "POST", "HEAD"])
 async def health():
     return {"status": "ok", "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")}
 
@@ -72,12 +72,12 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Debug endpoint to see what the AI sees
-# @app.post("/debug/page-content")
-# async def debug_page_content(request: ChatRequest):
-#     """Debug endpoint to see exactly what page content the AI receives"""
-#     return {
-#         "page_content": request.page_content,
-#         "length": len(request.page_content),
-#         "message": request.message,
-#         "history_count": len(request.history)
-#     }
+@app.post("/debug/page-content")
+async def debug_page_content(request: ChatRequest):
+    """Debug endpoint to see exactly what page content the AI receives"""
+    return {
+        "page_content": request.page_content,
+        "length": len(request.page_content),
+         "message": request.message,
+         "history_count": len(request.history)
+     }
