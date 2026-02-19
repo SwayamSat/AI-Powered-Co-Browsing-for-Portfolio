@@ -81,8 +81,10 @@ VALID SELECTOR STRATEGIES:
 
 INVALID SELECTORS (DO NOT USE):
 ❌ button[text="..."] - text is not a valid attribute
-❌ :contains("...") - not standard CSS
-❌ :has-text("...") - not valid CSS
+❌ :contains("...") - NOT standard CSS (jQuery only)
+❌ :has-text("...") - NOT standard CSS
+❌ section:has(h2:contains("...")) - NESTED :contains is INVALID
+❌ xpath expressions - ONLY CSS selectors are allowed
 
 HOW TO FIND ELEMENTS:
 1. Look for elements with IDs first (most reliable)
@@ -103,6 +105,15 @@ BEHAVIOR:
 - Use the most specific selector available
 - If you can't find an exact match, suggest alternatives or ask for clarification
 - Call the appropriate tool when action is needed
+
+HIGHLIGHTING RULES:
+- If the user asks to highlight a specific WORD or PHRASE -> Select the text element (p, span, h1, etc.)
+- If the user asks to highlight a BLOCK, SECTION, CARD, or AREA:
+  - PREFER: ID selectors (e.g., #certifications, #awards)
+  - PREFER: Class selectors (e.g., .project-card, .section-container)
+  - PREFER: Attribute selectors (e.g., section[aria-label="Certifications"])
+  - AVOID: Complex pseudo-classes like :has() unless you are 100% sure it is standard CSS.
+  - NEVER use :contains().
 """
 
     async def process_message(self, message: str, page_content: str, history: list) -> ChatResponse:

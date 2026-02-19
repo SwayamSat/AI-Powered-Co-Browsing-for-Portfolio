@@ -37,11 +37,11 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "highlight",
-        "description": "Highlight an element on the page to draw attention.",
+        "description": "Highlight an element (text, block, card, or section) on the page to draw attention.",
         "parameters": {
             "type": "object",
             "properties": {
-                "target": {"type": "string", "description": "CSS selector of the element to highlight."}
+                "target": {"type": "string", "description": "CSS selector of the element to highlight. Prefer container elements (div, section) for blocks."}
             },
             "required": ["target"]
         }
