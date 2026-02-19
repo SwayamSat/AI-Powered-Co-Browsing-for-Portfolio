@@ -6,7 +6,13 @@ from models import ChatRequest, ChatResponse
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+from pathlib import Path
+
+# Robustly load .env from the same directory as this file
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
+print(f"📂 Loading .env from: {env_path}")
+print(f"📂 GEMINI_MODEL currently set to: {os.getenv('GEMINI_MODEL')}")
 
 app = FastAPI()
 
