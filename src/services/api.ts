@@ -27,7 +27,7 @@ export interface TextResponse {
 export type ChatResponsePayload = ToolCall | TextResponse;
 
 
-const API_URL = 'http://localhost:8000/chat'; // Ensure this matches backend port
+const API_URL = process.env.NEXT_PUBLIC_AI_BACKEND_URL || 'http://localhost:8000/chat';
 
 export async function sendChatMessage(payload: ChatRequestPayload): Promise<ChatResponsePayload> {
     try {
