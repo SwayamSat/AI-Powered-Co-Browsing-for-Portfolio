@@ -27,7 +27,9 @@ if not api_key:
     raise ValueError("GOOGLE_API_KEY or GEMINI_API_KEY must be set in environment")
 
 try:
-    agent = GeminiAgent(api_key=api_key)
+    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    print(f"🤖 Initializing GeminiAgent with model: {model_name}")
+    agent = GeminiAgent(api_key=api_key, model_name=model_name)
     print(f"✅ GeminiAgent initialized successfully")
 except Exception as e:
     print(f"❌ Failed to initialize GeminiAgent: {e}")
