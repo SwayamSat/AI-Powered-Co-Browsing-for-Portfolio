@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'; // Assuming shadcn/ui component
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
-import { sendChatMessage, HistoryItem } from '@/lib/api';
-import { getVisiblePageContent } from '@/lib/domExtractor';
+import { sendChatMessage, HistoryItem } from '../lib/api';
+import { getVisiblePageContent } from '../lib/domExtractor';
 import { executeTool } from './ToolExecutor';
 
 interface ChatWindowProps {
