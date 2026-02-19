@@ -2,12 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Assuming shadcn/ui components
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageBubble } from './MessageBubble';
-import { sendChatMessage, HistoryItem } from '../lib/api';
-import { getVisiblePageContent } from '../lib/domExtractor';
+import { sendChatMessage, HistoryItem } from '../services/api';
+import { getVisiblePageContent } from '../services/domExtractor';
 import { executeTool } from './ToolExecutor';
 
 interface ChatWindowProps {
