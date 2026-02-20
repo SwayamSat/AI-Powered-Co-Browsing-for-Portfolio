@@ -16,13 +16,21 @@ print(f"📂 GEMINI_MODEL currently set to: {os.getenv('GEMINI_MODEL')}")
 
 app = FastAPI()
 
-# CORS
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# CORS configuration
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins = [origin.strip() for origin in raw_origins if origin.strip()]
+
+# Credentials (cookies/auth) cannot be used with wildcard origins (*)
+allow_all = "*" in origins
+use_credentials = not allow_all
+
+print(f"🔒 CORS: Allowing origins: {origins}")
+print(f"🔒 CORS: allow_credentials={use_credentials}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=use_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
