@@ -13,13 +13,21 @@ class GeminiAgent:
         if model_name is None:
             model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         
+        # Ensure model_name starts with models/ if not already
+        if not model_name.startswith("models/"):
+            full_model_name = f"models/{model_name}"
+        else:
+            full_model_name = model_name
+
+        self.model_name = full_model_name
+        print(f"🛠️ GeminiAgent initialized with model_name: {full_model_name}")
         genai.configure(api_key=api_key)
         
         # Convert TOOLS_SCHEMA to FunctionDeclarations
         self.tools = self._convert_schema_to_tools()
         
         self.model = genai.GenerativeModel(
-            model_name,
+            full_model_name,
             tools=self.tools
         )
         self.system_prompt = self._get_system_prompt()
@@ -129,6 +137,7 @@ HIGHLIGHTING RULES:
         
         full_prompt = f"{self.system_prompt}\n\n{context_prompt}\nConversation History:\n{history_text}\nUser: {message}\nAI:"
 
+        print(f"🚀 Sending request to Gemini using model: {self.model_name}")
         try:
             # We enable automatic function calling logic handling by the model
             response = await self.model.generate_content_async(full_prompt)
