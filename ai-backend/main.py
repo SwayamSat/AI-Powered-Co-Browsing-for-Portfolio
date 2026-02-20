@@ -17,44 +17,52 @@ print(f"📂 GEMINI_MODEL currently set to: {os.getenv('GEMINI_MODEL')}")
 app = FastAPI()
 
 # CORS configuration
+# Be very permissive for production deployment to avoid headers issues
 raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-origins = [origin.strip() for origin in raw_origins if origin.strip()]
-
-# Credentials (cookies/auth) cannot be used with wildcard origins (*)
-allow_all = "*" in origins
-use_credentials = not allow_all
-
-print(f"🔒 CORS: Allowing origins: {origins}")
-print(f"🔒 CORS: allow_credentials={use_credentials}")
+origins = [o.strip() for o in raw_origins if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=use_credentials,
+    allow_credentials=False, # Credentials must be False if using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+print(f"🔒 CORS: origins={origins}")
+
 # Initialize agent
 api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GOOGLE_API_KEY or GEMINI_API_KEY must be set in environment")
+model_env = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
-try:
-    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    print(f"🤖 Initializing GeminiAgent with model: {model_name}")
-    agent = GeminiAgent(api_key=api_key, model_name=model_name)
-    print(f"✅ GeminiAgent initialized successfully")
-except Exception as e:
-    print(f"❌ Failed to initialize GeminiAgent: {e}")
-    raise
+if not api_key:
+    # Don't crash at startup in prod if key is missing, just log it
+    # This prevents the whole container from dying if env var is missing for a second
+    print("⚠️ WARNING: GOOGLE_API_KEY is missing!")
+    agent = None
+else:
+    try:
+        print(f"🤖 Initializing GeminiAgent with model: {model_env}")
+        agent = GeminiAgent(api_key=api_key, model_name=model_env)
+        print(f"✅ GeminiAgent initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize GeminiAgent: {e}")
+        agent = None
 
 @app.api_route("/health", methods=["GET", "POST", "HEAD"])
 async def health():
-    return {"status": "ok", "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")}
+    return {
+        "status": "ok", 
+        "model": model_env,
+        "agent_online": agent is not None,
+        "allowed_origins": origins
+    }
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    if not agent:
+        raise HTTPException(status_code=503, detail="AI Agent is not initialized. Check GOOGLE_API_KEY.")
+    
     try:
         # Log the page content for debugging
         print(f"\n{'='*80}")
@@ -70,7 +78,7 @@ async def chat(request: ChatRequest):
             history=request.history
         )
         
-        # Log the response
+        # Log the response (using response.response because of the Pydantic model structure)
         print(f"\n{'='*80}")
         print(f"📤 Response type: {response.response.type if hasattr(response.response, 'type') else 'text'}")
         if hasattr(response.response, 'action'):
@@ -86,19 +94,11 @@ async def chat(request: ChatRequest):
         print(f"❌ Error in chat endpoint: {e}")
         import traceback
         traceback.print_exc()
-        # Return a generic error message to the client to prevent information leakage
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Debug endpoint to see what the AI sees
-@app.post("/debug/page-content")
-async def debug_page_content(request: ChatRequest):
-    """Debug endpoint to see exactly what page content the AI receives"""
-    return {
-        "page_content": request.page_content,
-        "length": len(request.page_content),
-         "message": request.message,
-         "history_count": len(request.history)
-     }
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Render provides PORT environment variable
+    port = int(os.environ.get("PORT", 8000))
+    print(f"🚀 Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
