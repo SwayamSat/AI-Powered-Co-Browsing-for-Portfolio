@@ -49,6 +49,16 @@ export async function sendChatMessage(payload: ChatRequestPayload): Promise<Chat
         return data.response;
     } catch (error) {
         console.error('Chat API Error:', error);
+        console.error('Attempted to call URL:', API_URL);
+
+        // Help the user identify common issues in production
+        if (typeof window !== 'undefined') {
+            console.log('%c [Chat Diagnostic] %c Checking connection to: ' + API_URL, 'background: #222; color: #bada55', 'color: #fff');
+            if (API_URL.includes('localhost')) {
+                console.warn('[Chat Diagnostic] WARNING: You are calling localhost from a deployed site. This will not work. Set NEXT_PUBLIC_AI_BACKEND_URL in Vercel.');
+            }
+        }
+
         // Fallback error message
         return {
             type: 'message',
