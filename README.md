@@ -1,6 +1,6 @@
 # AI Co-Browsing Portfolio Assistant
 
-An advanced AI-powered co-browsing assistant integrated into a Next.js portfolio. It uses Google Gemini 1.5 Flash via a FastAPI backend to understand the website content and execute actions like scrolling, navigating, and highlighting elements.
+An advanced AI-powered co-browsing assistant integrated into a Next.js portfolio. It uses Google Gemini 2.5 Flash via a FastAPI backend to understand the website content and execute actions like scrolling, navigating, and highlighting elements.
 
 ## Architecture
 
@@ -93,7 +93,7 @@ To use this project, you need a Google Gemini API key.
 2.  Create a new API key.
 3.  Copy the key and paste it into your `ai-backend/.env` file as `GOOGLE_API_KEY`.
 
-You can also configure the model usage by setting `GEMINI_MODEL` in the same `.env` file. The default is `gemini-1.5-flash`, but you can use other available models like `gemini-1.5-pro` if you have access.
+You can also configure the model usage by setting `GEMINI_MODEL` in the same `.env` file. The default is `gemini-2.5-flash`, but you can use other available models like `gemini-2.5-pro` if you have access.
 
 ## Deployment
 
@@ -107,3 +107,11 @@ You can also configure the model usage by setting `GEMINI_MODEL` in the same `.e
 -   Deploy to a platform like Render, Railway, or Fly.io.
 -   Set the `GOOGLE_API_KEY` and `GEMINI_MODEL` environment variables.
 -   Set `ALLOWED_ORIGINS` to your frontend's deployed URL (e.g., `https://your-portfolio.vercel.app`) to enable CORS.
+
+
+## Video Showcase
+
+
+https://github.com/user-attachments/assets/65ec2afa-cf66-4276-8bbc-4a31acbb891c
+
+
