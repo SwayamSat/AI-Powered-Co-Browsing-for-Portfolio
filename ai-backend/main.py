@@ -33,7 +33,7 @@ print(f"🔒 CORS: origins={origins}")
 
 # Initialize agent
 api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-model_env = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+model_env = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 if not api_key:
     # Don't crash at startup in prod if key is missing, just log it
