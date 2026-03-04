@@ -62,6 +62,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
             if (Array.isArray(response)) {
                 // Handle multiple tool calls sequentially
+                let executedCount = 0;
+                const actionSummaries: string[] = [];
+
                 for (const toolCall of response) {
                     setMessages(prev => [...prev, { role: 'model', content: `Executing action: ${toolCall.action} ${toolCall.target}`, type: 'action' }]);
 
@@ -71,18 +74,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
                         break; // Stop executing further actions if one fails
                     }
 
+                    actionSummaries.push(`${toolCall.action} → ${toolCall.target}`);
+                    executedCount++;
+
                     // Small delay between actions for UI to catch up and visually separate them
                     await new Promise(resolve => setTimeout(resolve, 600));
+                }
+
+                // ✅ Append a history-visible completion message so the model knows what it
+                // already did on the NEXT turn. Without this, action messages (type='action')
+                // are filtered from history and the model repeats itself when given the same prompt.
+                if (executedCount > 0) {
+                    setMessages(prev => [...prev, {
+                        role: 'model',
+                        content: `Done! Completed ${executedCount} action${executedCount > 1 ? 's' : ''}: ${actionSummaries.join(', ')}.`,
+                        type: 'message'
+                    }]);
                 }
             } else if (response.type === 'action') {
                 setMessages(prev => [...prev, { role: 'model', content: `Executing action: ${response.action} ${response.target}`, type: 'action' }]);
 
-                // Execute tool
                 const success = executeTool(response, router);
 
-                // Optionally, the AI could follow up, but for now we just show what happened.
+                // ✅ Same fix for single actions — add a history-visible confirmation.
                 if (!success) {
                     setMessages(prev => [...prev, { role: 'model', content: "I couldn't complete that action. Could you try rephrasing?", type: 'message' }]);
+                } else {
+                    setMessages(prev => [...prev, {
+                        role: 'model',
+                        content: `Done! Performed ${response.action} on ${response.target}.`,
+                        type: 'message'
+                    }]);
                 }
 
             } else {
