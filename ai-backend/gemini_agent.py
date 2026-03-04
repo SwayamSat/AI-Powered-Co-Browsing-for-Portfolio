@@ -3,17 +3,13 @@ import json
 import os
 import re
 from models import ChatResponse, TextResponse, ToolCall
-from tools_schema import TOOLS_SCHEMA
 
-from google.generativeai.types import FunctionDeclaration, Tool
-from google.ai import generativelanguage as glm
 
 class GeminiAgent:
     def __init__(self, api_key: str, model_name: str = None):
         if model_name is None:
             model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-        
-        # Ensure model_name starts with models/ if not already
+
         if not model_name.startswith("models/"):
             full_model_name = f"models/{model_name}"
         else:
@@ -22,177 +18,187 @@ class GeminiAgent:
         self.model_name = full_model_name
         print(f"🛠️ GeminiAgent initialized with model_name: {full_model_name}")
         genai.configure(api_key=api_key)
-        
-        # Convert TOOLS_SCHEMA to FunctionDeclarations
-        self.tools = self._convert_schema_to_tools()
-        
-        self.model = genai.GenerativeModel(
-            full_model_name,
-            tools=self.tools
-        )
+
+        # No function-calling tools — we use structured JSON-in-text instead.
+        # This gives us a single, fast, deterministic API call regardless of how
+        # many actions the user requests.
+        self.model = genai.GenerativeModel(full_model_name)
         self.system_prompt = self._get_system_prompt()
 
-    def _convert_schema_to_tools(self):
-        """Converts internal tool schema to Gemini FunctionDeclaration objects."""
-        funcs = []
-        for tool_def in TOOLS_SCHEMA:
-            # Deep copy and transform types
-            fd = tool_def.copy()
-            if "parameters" in fd:
-                fd["parameters"] = self._transform_schema(fd["parameters"])
-            funcs.append(fd)
-        return funcs
-
-    def _transform_schema(self, schema):
-        """Recursively transforms schema types to glm.Type enums."""
-        new_schema = schema.copy()
-        
-        # Map string types to glm.Type enums
-        type_str = new_schema.get("type")
-        if type_str == "object":
-            new_schema["type"] = glm.Type.OBJECT
-        elif type_str == "string":
-            new_schema["type"] = glm.Type.STRING
-        elif type_str == "number":
-            new_schema["type"] = glm.Type.NUMBER
-        elif type_str == "integer":
-            new_schema["type"] = glm.Type.INTEGER
-        elif type_str == "boolean":
-            new_schema["type"] = glm.Type.BOOLEAN
-        elif type_str == "array":
-            new_schema["type"] = glm.Type.ARRAY
-        
-        # Handle properties recursively
-        if "properties" in new_schema:
-            new_props = {}
-            for k, v in new_schema["properties"].items():
-                new_props[k] = self._transform_schema(v)
-            new_schema["properties"] = new_props
-            
-        return new_schema
+    # ── System prompt ────────────────────────────────────────────────────────────
 
     def _get_system_prompt(self) -> str:
         return """You are an AI co-browsing assistant embedded inside a developer portfolio website.
 
 You will receive the "Current Page Content" as simplified HTML with key elements and attributes.
 
-CRITICAL RULES FOR SELECTORS:
-1. ONLY use valid CSS selectors that work with document.querySelector()
-2. NEVER use [text="..."] - this is INVALID CSS
-3. NEVER use :contains(...) - this is INVALID CSS
+════════════════════════════════════════════════════════════════
+RESPONSE FORMAT — ALWAYS output valid JSON. NO plain text ever.
+════════════════════════════════════════════════════════════════
 
-VALID SELECTOR STRATEGIES:
-✅ Use IDs when available: #hero, #contact, #hero-hire-me, #hero-resume
-✅ Use attributes: input[placeholder="Your Name"], a[href*="resume"]
-✅ Use parent + child: #hero button, #contact input, section#hero a
-✅ Use element type + attribute: button[id*="hire"], a[id*="resume"]
+▸ Single action:
+{"type":"action","action":"scroll","target":"#projects"}
 
-INVALID SELECTORS (DO NOT USE):
-❌ button[text="..."] - text is not a valid attribute
-❌ :contains("...") - NOT standard CSS (jQuery only)
-❌ :has-text("...") - NOT standard CSS
-❌ section:has(h2:contains("...")) - NESTED :contains is INVALID
-❌ xpath expressions - ONLY CSS selectors are allowed
+▸ Multiple sequential actions — list EVERY step upfront in ONE response:
+{"type":"actions","actions":[
+  {"action":"navigate","target":"/"},
+  {"action":"navigate","target":"/about"},
+  {"action":"navigate","target":"/projects"},
+  {"action":"navigate","target":"/experience"},
+  {"action":"navigate","target":"/skills"},
+  {"action":"navigate","target":"/education"},
+  {"action":"navigate","target":"/achievements"},
+  {"action":"navigate","target":"/services"},
+  {"action":"navigate","target":"/contact"},
+  {"action":"input","target":"#contact-name","value":"John Doe"},
+  {"action":"input","target":"#contact-email","value":"john@example.com"},
+  {"action":"input","target":"#contact-message","value":"Hello! I'd love to discuss a project."},
+  {"action":"click","target":"button[type='submit']"}
+]}
 
-HOW TO FIND ELEMENTS:
-1. Look for elements with IDs first (most reliable)
-2. If no ID, use unique attributes (placeholder, href, type)
-3. If neither, use parent context (#contact input, #hero button)
-4. The HTML shows both the tag structure AND text content - use both!
+▸ Text / conversational reply:
+{"type":"text","content":"Your message here"}
 
-EXAMPLES FROM THE PAGE CONTENT:
-- To scroll to hero: target="#hero"
-- To click hire me button: Look for <button id="hero-hire-me"> or <button id="nav-hire-me">
-- To click download resume: Look for <button id="hero-resume"> or <a href="...resume...">
-- To fill name: Look for <input id="contact-name"> or <input placeholder="Your Name">
-- To fill email: Look for <input id="contact-email"> or <input placeholder="Your Email">
+════════════════════════════════════════════════════════════════
+AVAILABLE ACTIONS
+════════════════════════════════════════════════════════════════
+• navigate  – target = route path: "/", "/about", "/projects", "/experience",
+               "/skills", "/education", "/achievements", "/services", "/contact"
+• scroll    – target = CSS selector of element to scroll into view
+• click     – target = CSS selector of element to click
+• highlight – target = CSS selector of element to highlight with a glow
+• input     – target = CSS selector of input/textarea; value = text to type
+• focus     – target = CSS selector of element to focus
 
-BEHAVIOR:
-- Examine the provided HTML carefully
-- Match user intent to visible elements
-- Use the most specific selector available
-- If you can't find an exact match, suggest alternatives or ask for clarification
-- Call the appropriate tool when action is needed
-- IF THE USER REQUESTS MULTIPLE ACTIONS (e.g., "fill my name, add a message, and click send"), output multiple tool calls in a single response to complete all steps without stopping.
+════════════════════════════════════════════════════════════════
+VALID CSS SELECTORS
+════════════════════════════════════════════════════════════════
+✅ #hero  #contact  #contact-name  #contact-email  #contact-message
+✅ input[placeholder="Your Name"]   button[type="submit"]
+✅ #hero-hire-me   #hero-resume   #nav-hire-me
+❌ NEVER use :contains()  [text=...]  :has-text()  xpath
 
-HIGHLIGHTING RULES:
-- If the user asks to highlight a specific WORD or PHRASE -> Select the text element (p, span, h1, etc.)
-- If the user asks to highlight a BLOCK, SECTION, CARD, or AREA:
-  - PREFER: ID selectors (e.g., #certifications, #awards)
-  - PREFER: Class selectors (e.g., .project-card, .section-container)
-  - PREFER: Attribute selectors (e.g., section[aria-label="Certifications"])
-  - AVOID: Complex pseudo-classes like :has() unless you are 100% sure it is standard CSS.
-  - NEVER use :contains().
+════════════════════════════════════════════════════════════════
+MULTI-STEP RULE (critical)
+════════════════════════════════════════════════════════════════
+Whenever the user asks for more than one thing (e.g. "go through all pages then
+fill the contact form"), output ALL actions in a SINGLE "actions" JSON response.
+Do NOT split them across multiple replies. Do NOT hold any steps back.
+Output the complete plan in one shot.
 """
 
+    # ── Main entry point ────────────────────────────────────────────────────────
+
     async def process_message(self, message: str, page_content: str, history: list) -> ChatResponse:
-        # Construct the full prompt
-        context_prompt = f"Current Page Content:\n{page_content[:20000]}\n\n" # Increased limit to match extractor
-        
-        # Add history to prompt
+        context_prompt = f"Current Page Content:\n{page_content[:20000]}\n\n"
+
         history_text = ""
-        for item in history[-10:]: # Last 10 messages
+        for item in history[-10:]:
             role = "User" if item.role == "user" else "AI"
             content = " ".join(item.parts)
             history_text += f"{role}: {content}\n"
-        
-        full_prompt = f"{self.system_prompt}\n\n{context_prompt}\nConversation History:\n{history_text}\nUser: {message}\nAI:"
 
-        print(f"🚀 Sending request to Gemini using model: {self.model_name}")
+        full_prompt = (
+            f"{self.system_prompt}\n\n"
+            f"{context_prompt}"
+            f"Conversation History:\n{history_text}\n"
+            f"User: {message}\n"
+            f"AI (JSON only):"
+        )
+
+        print(f"🚀 Single Gemini call — model: {self.model_name}")
         try:
-            # We enable automatic function calling logic handling by the model
             response = await self.model.generate_content_async(full_prompt)
-            
-            # Check for safety blocking or empty response
+
             if response.prompt_feedback and response.prompt_feedback.block_reason:
-                 return ChatResponse(response=TextResponse(content=f"I cannot answer that due to safety guidelines. (Reason: {str(response.prompt_feedback.block_reason)})"))
+                return ChatResponse(response=TextResponse(
+                    content=f"I cannot answer that due to safety guidelines. "
+                            f"(Reason: {str(response.prompt_feedback.block_reason)})"
+                ))
 
             if not response.parts:
-                 return ChatResponse(response=TextResponse(content="I'm having trouble generating a response right now. Please try again."))
+                return ChatResponse(response=TextResponse(
+                    content="I'm having trouble generating a response right now. Please try again."
+                ))
 
-            # Iterate through all parts to find function calls or text
-            function_calls = []
-            text_parts = []
-
+            # Collect raw text
+            raw_text = ""
             for part in response.parts:
                 try:
-                    if part.function_call:
-                        function_calls.append(part.function_call)
-                except:
-                    pass
-                
-                try:
                     if part.text:
-                        text_parts.append(part.text)
-                except ValueError:
-                    # part.text raises ValueError if it's a function call
+                        raw_text += part.text
+                except Exception:
                     pass
-            
-            if function_calls:
-                tool_calls = []
-                for fc in function_calls:
-                    tool_calls.append(ToolCall(
+
+            print(f"📥 Raw response ({len(raw_text)} chars): {raw_text[:300]}")
+
+            # Extract and parse JSON
+            json_str = self._extract_json(raw_text)
+            if not json_str:
+                # Gemini returned plain text despite instructions — wrap it
+                return ChatResponse(response=TextResponse(content=raw_text.strip()))
+
+            data = json.loads(json_str)
+            resp_type = data.get("type", "text")
+
+            # ── Multiple actions ────────────────────────────────────────────────
+            if resp_type == "actions":
+                actions = data.get("actions", [])
+                tool_calls = [
+                    ToolCall(
                         type="action",
-                        action=fc.name,
-                        target=fc.args.get("target"),
-                        value=fc.args.get("value")
-                    ))
-                
-                # If multiple tool calls, return them as a list. Otherwise just one.
+                        action=a["action"],
+                        target=a["target"],
+                        value=a.get("value"),
+                    )
+                    for a in actions
+                ]
+                print(f"✅ Returning {len(tool_calls)} actions in ONE response")
                 if len(tool_calls) == 1:
                     return ChatResponse(response=tool_calls[0])
                 return ChatResponse(response=tool_calls)
 
-            # Otherwise treat as text
-            response_text = " ".join(text_parts).strip()
-            if not response_text:
-                 response_text = "I received a response but couldn't parse it."
+            # ── Single action ───────────────────────────────────────────────────
+            if resp_type == "action":
+                return ChatResponse(response=ToolCall(
+                    type="action",
+                    action=data["action"],
+                    target=data["target"],
+                    value=data.get("value"),
+                ))
 
-            return ChatResponse(response=TextResponse(content=response_text))
+            # ── Text response ────────────────────────────────────────────────────
+            return ChatResponse(response=TextResponse(
+                content=data.get("content", raw_text.strip())
+            ))
 
+        except json.JSONDecodeError as e:
+            print(f"⚠️ JSON parse error: {e} | raw: {raw_text[:200]}")
+            return ChatResponse(response=TextResponse(
+                content=raw_text.strip() or "I couldn't format my response. Please try again."
+            ))
         except Exception as e:
-            print(f"Gemini Error Details: {e}")
+            print(f"❌ Gemini Error: {e}")
             import traceback
             traceback.print_exc()
-            return ChatResponse(response=TextResponse(content=f"I encountered an error processing your request: {str(e)}"))
+            return ChatResponse(response=TextResponse(
+                content=f"I encountered an error processing your request: {str(e)}"
+            ))
 
+    # ── Helpers ─────────────────────────────────────────────────────────────────
+
+    def _extract_json(self, text: str) -> str | None:
+        """Pull the first JSON object out of a string that may contain markdown fences."""
+        text = text.strip()
+
+        # Markdown code block: ```json { ... } ```
+        block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if block:
+            return block.group(1)
+
+        # Bare JSON object anywhere in the string
+        obj = re.search(r"\{.*\}", text, re.DOTALL)
+        if obj:
+            return obj.group(0)
+
+        return None
