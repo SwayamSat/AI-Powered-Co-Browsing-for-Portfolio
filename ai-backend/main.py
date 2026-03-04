@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from gemini_agent import GeminiAgent
 from models import ChatRequest, ChatResponse
+from portfolio_router import router as portfolio_router
 import os
 from dotenv import load_dotenv
 
@@ -15,6 +16,8 @@ print(f"📂 Loading .env from: {env_path}")
 print(f"📂 GEMINI_MODEL currently set to: {os.getenv('GEMINI_MODEL')}")
 
 app = FastAPI()
+
+app.include_router(portfolio_router)
 
 # CORS configuration
 # Be very permissive for production deployment to avoid headers issues
