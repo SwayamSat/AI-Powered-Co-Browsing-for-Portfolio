@@ -60,7 +60,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
                 history: history
             });
 
-            if (response.type === 'action') {
+            if (Array.isArray(response)) {
+                // Handle multiple tool calls sequentially
+                for (const toolCall of response) {
+                    setMessages(prev => [...prev, { role: 'model', content: `Executing action: ${toolCall.action} ${toolCall.target}`, type: 'action' }]);
+
+                    const success = executeTool(toolCall, router);
+                    if (!success) {
+                        setMessages(prev => [...prev, { role: 'model', content: `I couldn't complete the action: ${toolCall.action}. Could you try rephrasing?`, type: 'message' }]);
+                        break; // Stop executing further actions if one fails
+                    }
+
+                    // Small delay between actions for UI to catch up and visually separate them
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                }
+            } else if (response.type === 'action') {
                 setMessages(prev => [...prev, { role: 'model', content: `Executing action: ${response.action} ${response.target}`, type: 'action' }]);
 
                 // Execute tool

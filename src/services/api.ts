@@ -24,7 +24,7 @@ export interface TextResponse {
     content: string;
 }
 
-export type ChatResponsePayload = ToolCall | TextResponse;
+export type ChatResponsePayload = ToolCall | TextResponse | ToolCall[];
 
 
 const API_URL = process.env.NEXT_PUBLIC_AI_BACKEND_URL || 'http://localhost:8000/chat';

@@ -53,10 +53,22 @@ export const executeTool = (tool: ToolAction, router?: AppRouterInstance) => {
 
         case 'input':
             if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-                element.value = tool.value || '';
-                // Trigger change event for React to pick up changes
-                const event = new Event('input', { bubbles: true });
-                element.dispatchEvent(event);
+                // React tracks input values using property descriptors. 
+                // Direct assignment (element.value = ...) doesn't trigger React's onChange.
+                // We need to use the native setter to bypass React's tracking briefly.
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+
+                if (element instanceof HTMLInputElement && nativeInputValueSetter) {
+                    nativeInputValueSetter.call(element, tool.value || '');
+                } else if (element instanceof HTMLTextAreaElement && nativeTextAreaValueSetter) {
+                    nativeTextAreaValueSetter.call(element, tool.value || '');
+                } else {
+                    element.value = tool.value || '';
+                }
+
+                // Dispatch input event for React to pick up the change
+                element.dispatchEvent(new Event('input', { bubbles: true }));
             }
             break;
 

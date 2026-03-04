@@ -113,6 +113,7 @@ BEHAVIOR:
 - Use the most specific selector available
 - If you can't find an exact match, suggest alternatives or ask for clarification
 - Call the appropriate tool when action is needed
+- IF THE USER REQUESTS MULTIPLE ACTIONS (e.g., "fill my name, add a message, and click send"), output multiple tool calls in a single response to complete all steps without stopping.
 
 HIGHLIGHTING RULES:
 - If the user asks to highlight a specific WORD or PHRASE -> Select the text element (p, span, h1, etc.)
@@ -150,14 +151,13 @@ HIGHLIGHTING RULES:
                  return ChatResponse(response=TextResponse(content="I'm having trouble generating a response right now. Please try again."))
 
             # Iterate through all parts to find function calls or text
-            function_call_part = None
+            function_calls = []
             text_parts = []
 
             for part in response.parts:
                 try:
                     if part.function_call:
-                        function_call_part = part.function_call
-                        break # Prioritize function call
+                        function_calls.append(part.function_call)
                 except:
                     pass
                 
@@ -168,16 +168,20 @@ HIGHLIGHTING RULES:
                     # part.text raises ValueError if it's a function call
                     pass
             
-            if function_call_part:
-                fc = function_call_part
-                # Convert native function call to our JSON Action format
-                tool_call = ToolCall(
-                    type="action",
-                    action=fc.name,
-                    target=fc.args.get("target"),
-                    value=fc.args.get("value")
-                )
-                return ChatResponse(response=tool_call)
+            if function_calls:
+                tool_calls = []
+                for fc in function_calls:
+                    tool_calls.append(ToolCall(
+                        type="action",
+                        action=fc.name,
+                        target=fc.args.get("target"),
+                        value=fc.args.get("value")
+                    ))
+                
+                # If multiple tool calls, return them as a list. Otherwise just one.
+                if len(tool_calls) == 1:
+                    return ChatResponse(response=tool_calls[0])
+                return ChatResponse(response=tool_calls)
 
             # Otherwise treat as text
             response_text = " ".join(text_parts).strip()

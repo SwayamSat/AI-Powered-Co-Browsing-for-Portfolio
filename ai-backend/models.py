@@ -25,4 +25,4 @@ class TextResponse(BaseModel):
     content: str
 
 class ChatResponse(BaseModel):
-    response: Union[TextResponse, ToolCall]
+    response: Union[TextResponse, ToolCall, List[ToolCall]]
